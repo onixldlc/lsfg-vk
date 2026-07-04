@@ -1,0 +1,198 @@
+name: Build and Release (AppImage)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: 'Optional version override (e.g. 2.0.0). Leave empty to auto-detect'
+        required: false
+        default: ''
+      prerelease:
+        description: 'Mark as pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-appimage:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages:
+            git curl wget file
+            llvm clang clang-tools clang-tidy
+            cmake ninja-build pkg-config
+            libvulkan-dev
+            mesa-common-dev
+            qt6-base-dev qt6-base-dev-tools
+            qt6-tools-dev qt6-tools-dev-tools
+            qt6-declarative-dev qt6-declarative-dev-tools
+            qml6-module-qtquick
+            qml6-module-qtquick-controls
+            qml6-module-qtquick-dialogs
+            qml6-module-qtquick-layouts
+            qml6-module-qtquick-window
+            qml6-module-qtquick-templates
+            qml6-module-qtqml-workerscript
+            qml6-module-qt-labs-folderlistmodel
+            libfuse2
+          version: 2.0
+
+      - name: Update Vulkan headers
+        run: |
+          git clone -b vulkan-sdk-1.4.328 https://github.com/KhronosGroup/Vulkan-Headers /tmp/vkh
+          sudo rm -rf /usr/include/{vulkan,vk_video}
+          sudo mv /tmp/vkh/include/{vulkan,vk_video} /usr/include/
+          rm -rf /tmp/vkh
+
+      - name: Detect version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version_override }}" ]; then
+              VER="${{ github.event.inputs.version_override }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+              VER="${{ github.ref_name }}"
+              VER="${VER#v}"
+          else
+              VER="2.0.0-dev${{ github.run_number }}"
+          fi
+          echo "VERSION=$VER" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VER"
+
+      - name: Configure lsfg-vk
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DLSFGVK_BUILD_VK_LAYER=ON \
+            -DLSFGVK_BUILD_UI=ON \
+            -DLSFGVK_BUILD_CLI=ON \
+            -DLSFGVK_INSTALL_XDG_FILES=ON \
+            -DLSFGVK_LAYER_LIBRARY_PATH="../../../lib/liblsfg-vk-layer.so"
+
+      - name: Build with Ninja
+        run: ninja -C build
+
+      - name: Install into AppDir
+        run: DESTDIR="$PWD/AppDir" cmake --install build
+
+      - name: Write custom AppRun
+        run: |
+          cat > AppRun <<'SH'
+          #!/bin/sh
+          HERE=$(dirname "$(readlink -f "$0")")
+          export LD_LIBRARY_PATH="$HERE/usr/lib:${LD_LIBRARY_PATH}"
+          export VK_ADD_LAYER_PATH="$HERE/usr/share/vulkan/implicit_layer.d:${VK_ADD_LAYER_PATH}"
+          export QML_IMPORT_PATH="$HERE/usr/qml:${QML_IMPORT_PATH}"
+          export QT_PLUGIN_PATH="$HERE/usr/plugins:${QT_PLUGIN_PATH}"
+
+          case "$1" in
+            cli)
+              shift
+              exec "$HERE/usr/bin/lsfg-vk-cli" "$@"
+              ;;
+            run)
+              shift
+              exec "$@"
+              ;;
+            install-user)
+              DEST_LIB="$HOME/.local/lib"
+              DEST_MANIFEST="${XDG_DATA_HOME:-$HOME/.local/share}/vulkan/implicit_layer.d"
+              mkdir -p "$DEST_LIB" "$DEST_MANIFEST"
+              cp "$HERE/usr/lib/liblsfg-vk-layer.so" "$DEST_LIB/"
+              sed 's|../../../lib/liblsfg-vk-layer.so|'"$DEST_LIB"'/liblsfg-vk-layer.so|' \
+                "$HERE/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json" \
+                > "$DEST_MANIFEST/VkLayer_LSFGVK_frame_generation.json"
+              echo "Installed:"
+              echo "  $DEST_LIB/liblsfg-vk-layer.so"
+              echo "  $DEST_MANIFEST/VkLayer_LSFGVK_frame_generation.json"
+              ;;
+            uninstall-user)
+              rm -fv "$HOME/.local/lib/liblsfg-vk-layer.so"
+              rm -fv "${XDG_DATA_HOME:-$HOME/.local/share}/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json"
+              ;;
+            --help|-h|help)
+              cat <<HELP
+          lsfg-vk AppImage — usage:
+            lsfg-vk.AppImage                   Launch configuration GUI (default)
+            lsfg-vk.AppImage cli <args>        Run lsfg-vk-cli passthrough
+            lsfg-vk.AppImage run <game-cmd>    Launch <game-cmd> with layer env vars set
+                                               (Steam launch options: <path>/lsfg-vk.AppImage run %command%)
+            lsfg-vk.AppImage install-user      Copy layer .so and manifest to ~/.local
+                                               so all Vulkan apps see it (opt-in system install)
+            lsfg-vk.AppImage uninstall-user    Reverse install-user
+          HELP
+              ;;
+            "")
+              exec "$HERE/usr/bin/lsfg-vk-ui"
+              ;;
+            *)
+              exec "$HERE/usr/bin/lsfg-vk-ui" "$@"
+              ;;
+          esac
+          SH
+          chmod +x AppRun
+
+      - name: Fetch linuxdeploy
+        run: |
+          wget -q -O linuxdeploy.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q -O linuxdeploy-plugin-qt.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+
+      - name: Build AppImage
+        env:
+          QMAKE: /usr/lib/qt6/bin/qmake6
+          QML_SOURCES_PATHS: ${{ github.workspace }}/lsfg-vk-ui/rsc
+          LDAI_OUTPUT: lsfg-vk-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
+          LDAI_UPDATE_INFORMATION: gh-releases-zsync|PancakeTAS|lsfg-vk|latest|lsfg-vk-*-x86_64.AppImage.zsync
+        run: |
+          ./linuxdeploy.AppImage \
+            --appdir AppDir \
+            --custom-apprun AppRun \
+            --plugin qt \
+            --executable AppDir/usr/bin/lsfg-vk-ui \
+            --executable AppDir/usr/bin/lsfg-vk-cli \
+            --desktop-file AppDir/usr/share/applications/gay.pancake.lsfg-vk-ui.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/gay.pancake.lsfg-vk-ui.png \
+            --exclude-library "libvulkan*" \
+            --output appimage
+          ls -la ./*.AppImage
+
+      - name: Checksum
+        run: |
+          sha256sum "lsfg-vk-${{ steps.version.outputs.VERSION }}-x86_64.AppImage" \
+            > "lsfg-vk-${{ steps.version.outputs.VERSION }}-x86_64.AppImage.sha256"
+
+      - name: Attach to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: lsfg-vk v${{ steps.version.outputs.VERSION }}
+          append_body: true
+          body: |
+
+            ### AppImage
+            - Download `lsfg-vk-${{ steps.version.outputs.VERSION }}-x86_64.AppImage`
+            - `chmod +x` it, then run `./lsfg-vk-${{ steps.version.outputs.VERSION }}-x86_64.AppImage --help` for usage.
+            - For Steam: set launch options to `/path/to/lsfg-vk.AppImage run %command%`.
+          prerelease: ${{ github.event.inputs.prerelease }}
+          files: |
+            lsfg-vk-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
+            lsfg-vk-${{ steps.version.outputs.VERSION }}-x86_64.AppImage.sha256
