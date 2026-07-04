@@ -110,13 +110,13 @@ jobs:
           export VK_ADD_LAYER_PATH="$HERE/usr/share/vulkan/implicit_layer.d:${VK_ADD_LAYER_PATH}"
           export QML_IMPORT_PATH="$HERE/usr/qml:${QML_IMPORT_PATH}"
           export QT_PLUGIN_PATH="$HERE/usr/plugins:${QT_PLUGIN_PATH}"
-          # Material style respects system palette (via platform theme) AND has
-          # baked-in contrast rendering that stays legible across dark/light
-          # variations. Fusion in Qt 6.4 renders low-contrast button faces on
-          # some dark palettes (buttons visually indistinguishable from disabled).
+          # Material style inherits ambient palette from parent controls so it
+          # tracks the platform theme's dark/light. Fusion in Qt 6.4 renders
+          # low-contrast button faces on some dark palettes (buttons visually
+          # indistinguishable from disabled). Do NOT force MATERIAL_THEME —
+          # Qt 6.4 System detection is unreliable and forcing Light/Dark breaks
+          # inheritance; letting Material pick from parent palette works.
           export QT_QUICK_CONTROLS_STYLE="${QT_QUICK_CONTROLS_STYLE:-Material}"
-          # Follow system dark/light preference for Material theming.
-          export QT_QUICK_CONTROLS_MATERIAL_THEME="${QT_QUICK_CONTROLS_MATERIAL_THEME:-System}"
           # gtk3 platform theme reads user's GTK settings (palette, icon theme, fonts)
           # which on modern DEs (KDE Plasma incl. Bazzite, GNOME, XFCE, Cinnamon)
           # mirror the DE's active theme. Qt 6.4 xdgdesktopportal theme doesn't
