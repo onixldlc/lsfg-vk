@@ -47,7 +47,6 @@ jobs:
             qml6-module-qtquick-templates
             qml6-module-qtqml-workerscript
             qml6-module-qt-labs-folderlistmodel
-            qt6-wayland
             qt6-xdgdesktopportal-platformtheme
             qt6-gtk-platformtheme
             adwaita-icon-theme
@@ -112,6 +111,7 @@ jobs:
           export QML_IMPORT_PATH="$HERE/usr/qml:${QML_IMPORT_PATH}"
           export QT_PLUGIN_PATH="$HERE/usr/plugins:${QT_PLUGIN_PATH}"
           export QT_QUICK_CONTROLS_STYLE="${QT_QUICK_CONTROLS_STYLE:-Fusion}"
+          export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-xdgdesktopportal}"
           export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
           case "$1" in
@@ -173,7 +173,6 @@ jobs:
         env:
           QMAKE: /usr/lib/qt6/bin/qmake6
           QML_SOURCES_PATHS: ${{ github.workspace }}/lsfg-vk-ui/rsc
-          EXTRA_PLATFORM_PLUGINS: libqwayland-generic.so;libqwayland-egl.so
         run: |
           ./linuxdeploy.AppImage \
             --appdir AppDir \
