@@ -54,7 +54,6 @@ ApplicationWindow {
 
     LargeDialog {
         id: active_in_dialog
-        onConfirm: backend.createProfile(create_name.text)
 
         List {
             Layout.fillWidth: true
@@ -79,10 +78,12 @@ ApplicationWindow {
                 focus: true
             }
             Button {
+                text: "Add"
                 icon.name: "list-add"
                 onClicked: backend.addActiveIn(active_in_name.text)
             }
             Button {
+                text: "Remove"
                 icon.name: "list-remove"
                 onClicked: backend.removeActiveIn()
             }

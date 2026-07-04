@@ -9,6 +9,7 @@ Dialog {
 
     id: root
     title: name
+    standardButtons: Dialog.Ok | Dialog.Cancel
     onAccepted: root.confirm()
 
     modal: true

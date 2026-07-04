@@ -47,6 +47,8 @@ jobs:
             qml6-module-qtquick-templates
             qml6-module-qtqml-workerscript
             qml6-module-qt-labs-folderlistmodel
+            adwaita-icon-theme
+            hicolor-icon-theme
             libfuse2
           version: 2.0
 
@@ -91,6 +93,12 @@ jobs:
       - name: Install into AppDir
         run: DESTDIR="$PWD/AppDir" cmake --install build
 
+      - name: Bundle icon theme
+        run: |
+          mkdir -p AppDir/usr/share/icons
+          cp -r /usr/share/icons/Adwaita AppDir/usr/share/icons/
+          cp -r /usr/share/icons/hicolor AppDir/usr/share/icons/ 2>/dev/null || true
+
       - name: Write custom AppRun
         run: |
           cat > AppRun <<'SH'
@@ -100,6 +108,8 @@ jobs:
           export VK_ADD_LAYER_PATH="$HERE/usr/share/vulkan/implicit_layer.d:${VK_ADD_LAYER_PATH}"
           export QML_IMPORT_PATH="$HERE/usr/qml:${QML_IMPORT_PATH}"
           export QT_PLUGIN_PATH="$HERE/usr/plugins:${QT_PLUGIN_PATH}"
+          export QT_QUICK_CONTROLS_STYLE="${QT_QUICK_CONTROLS_STYLE:-Fusion}"
+          export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
           case "$1" in
             cli)

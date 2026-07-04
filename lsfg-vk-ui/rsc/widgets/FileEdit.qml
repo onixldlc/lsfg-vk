@@ -20,6 +20,7 @@ RowLayout {
     }
 
     Button {
+        text: "Browse..."
         icon.name: "folder-open"
         onClicked: picker.open()
     }
