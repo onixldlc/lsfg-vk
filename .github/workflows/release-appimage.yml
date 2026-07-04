@@ -117,11 +117,11 @@ jobs:
           # Qt 6.4 System detection is unreliable and forcing Light/Dark breaks
           # inheritance; letting Material pick from parent palette works.
           export QT_QUICK_CONTROLS_STYLE="${QT_QUICK_CONTROLS_STYLE:-Material}"
-          # gtk3 platform theme reads user's GTK settings (palette, icon theme, fonts)
-          # which on modern DEs (KDE Plasma incl. Bazzite, GNOME, XFCE, Cinnamon)
-          # mirror the DE's active theme. Qt 6.4 xdgdesktopportal theme doesn't
-          # relay palette info yet, so gtk3 gives better system-theme inheritance.
-          export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-gtk3}"
+          # xdgdesktopportal platform theme routes dialogs to user's DE picker
+          # via xdg-desktop-portal and (on Qt 6.4 with proper portal impl) relays
+          # dark/light preference so Material picks the right theme automatically.
+          # gtk3 theme was tried but broke Material auto-detection on KDE Bazzite.
+          export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-xdgdesktopportal}"
           export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
           case "$1" in
