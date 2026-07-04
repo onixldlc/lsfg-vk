@@ -12,23 +12,24 @@
 
 using namespace lsfgvk::ui;
 
-// Qt platform themes (especially xdgdesktopportal on Qt 6.4) can deliver
-// palettes where Button/ButtonText/Base/Text roles are either missing or
-// low-contrast against Window/WindowText. Fusion draws every control from
-// those roles, so a bad Button/ButtonText combo renders as unreadable.
-// Derive the control-surface roles from Window and force text to match
-// WindowText — the user's chosen window+text pair stays the source of
-// truth; we only fill in gaps and enforce contrast.
+// Qt's xdgdesktopportal platform theme on Qt 6.4 populates Window/WindowText
+// (from KDE/GNOME color scheme) but leaves Button/ButtonText/Text roles at
+// Qt's built-in Fusion defaults (light grey / dark), which look wrong on a
+// dark window. Labels in QML using palette.windowText render fine — mirror
+// that role into ButtonText/Text so Fusion controls read the same source.
+// Button face is derived from Window so it contrasts against the window bg.
 static void normalizePalette() {
     QPalette p = QGuiApplication::palette();
     const QColor window = p.color(QPalette::Window);
     const QColor windowText = p.color(QPalette::WindowText);
     const bool isDark = window.lightness() < 128;
+
     p.setColor(QPalette::Button, isDark ? window.lighter(125) : window.darker(108));
     p.setColor(QPalette::ButtonText, windowText);
     p.setColor(QPalette::Base, isDark ? window.darker(115) : window.lighter(105));
     p.setColor(QPalette::Text, windowText);
     p.setColor(QPalette::AlternateBase, isDark ? window.lighter(108) : window.darker(103));
+
     // Disabled variants — half-alpha windowText so disabled state still reads.
     QColor disabledText = windowText;
     disabledText.setAlpha(128);
