@@ -47,6 +47,9 @@ jobs:
             qml6-module-qtquick-templates
             qml6-module-qtqml-workerscript
             qml6-module-qt-labs-folderlistmodel
+            qt6-wayland
+            qt6-xdgdesktopportal-platformtheme
+            qt6-gtk-platformtheme
             adwaita-icon-theme
             hicolor-icon-theme
             libfuse2
@@ -166,12 +169,11 @@ jobs:
             https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
 
-      - name: Build AppImage
+      - name: Bundle AppDir (linuxdeploy, no output)
         env:
           QMAKE: /usr/lib/qt6/bin/qmake6
           QML_SOURCES_PATHS: ${{ github.workspace }}/lsfg-vk-ui/rsc
-          LDAI_OUTPUT: lsfg-vk-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
-          LDAI_UPDATE_INFORMATION: gh-releases-zsync|PancakeTAS|lsfg-vk|latest|lsfg-vk-*-x86_64.AppImage.zsync
+          EXTRA_PLATFORM_PLUGINS: libqwayland-generic.so;libqwayland-egl.so
         run: |
           ./linuxdeploy.AppImage \
             --appdir AppDir \
@@ -181,8 +183,28 @@ jobs:
             --executable AppDir/usr/bin/lsfg-vk-cli \
             --desktop-file AppDir/usr/share/applications/gay.pancake.lsfg-vk-ui.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/gay.pancake.lsfg-vk-ui.png \
-            --exclude-library "libvulkan*" \
-            --output appimage
+            --exclude-library "libvulkan*"
+
+      - name: Add QML modules and platform themes linuxdeploy missed
+        run: |
+          # qmlimportscanner only reads OUR source. Qt's own FileDialog impl
+          # (qrc:/qt-project.org/imports/QtQuick/Dialogs/quickimpl/qml/FileDialog.qml)
+          # imports Qt.labs.folderlistmodel internally — never seen by scanner.
+          # Copy full Qt.labs tree + platform themes for native portal dialogs.
+          QT_LIB=/usr/lib/x86_64-linux-gnu/qt6
+          mkdir -p AppDir/usr/qml
+          cp -r "$QT_LIB/qml/Qt" AppDir/usr/qml/ 2>/dev/null || true
+          mkdir -p AppDir/usr/plugins/platformthemes
+          cp "$QT_LIB/plugins/platformthemes/"*.so AppDir/usr/plugins/platformthemes/ 2>/dev/null || true
+          ls AppDir/usr/qml/Qt/labs/ 2>&1 || echo "no Qt.labs bundled"
+          ls AppDir/usr/plugins/platformthemes/ 2>&1
+
+      - name: Package AppImage
+        env:
+          LDAI_OUTPUT: lsfg-vk-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
+          LDAI_UPDATE_INFORMATION: gh-releases-zsync|PancakeTAS|lsfg-vk|latest|lsfg-vk-*-x86_64.AppImage.zsync
+        run: |
+          ./linuxdeploy.AppImage --appdir AppDir --output appimage
           ls -la ./*.AppImage
 
       - name: Checksum
