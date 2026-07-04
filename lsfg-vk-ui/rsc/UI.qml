@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import lsfgvk 1.0
 import "dialogs"
 import "panes"
 import "widgets"
@@ -17,7 +18,7 @@ ApplicationWindow {
     CenteredDialog {
         id: create_dialog
         name: "Create New Profile"
-        onConfirm: backend.createProfile(create_name.text)
+        onConfirm: Backend.createProfile(create_name.text)
 
         TextField {
             Layout.fillWidth: true
@@ -30,7 +31,7 @@ ApplicationWindow {
     CenteredDialog {
         id: rename_dialog
         name: "Rename Profile"
-        onConfirm: backend.renameProfile(rename_name.text)
+        onConfirm: Backend.renameProfile(rename_name.text)
 
         TextField {
             Layout.fillWidth: true
@@ -43,7 +44,7 @@ ApplicationWindow {
     CenteredDialog {
         id: delete_dialog
         name: "Confirm Deletion"
-        onConfirm: backend.deleteProfile()
+        onConfirm: Backend.deleteProfile()
 
         Label {
             Layout.fillWidth: true
@@ -59,12 +60,12 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            model: backend.active_in
-            selected: backend.active_in_index
+            model: Backend.active_in
+            selected: Backend.active_in_index
             onSelect: (index) => {
-                backend.active_in_index = index
-                var idx = backend.active_in.index(index, 0);
-                active_in_name.text = backend.active_in.data(idx);
+                Backend.active_in_index = index
+                var idx = Backend.active_in.index(index, 0);
+                active_in_name.text = Backend.active_in.data(idx);
             }
         }
 
@@ -80,12 +81,12 @@ ApplicationWindow {
             Button {
                 text: "Add"
                 icon.name: "list-add"
-                onClicked: backend.addActiveIn(active_in_name.text)
+                onClicked: Backend.addActiveIn(active_in_name.text)
             }
             Button {
                 text: "Remove"
                 icon.name: "list-remove"
-                onClicked: backend.removeActiveIn()
+                onClicked: Backend.removeActiveIn()
             }
         }
     }
@@ -107,9 +108,9 @@ ApplicationWindow {
             }
 
             List {
-                model: backend.profiles
-                selected: backend.profile_index
-                onSelect: (index) => backend.profile_index = index
+                model: Backend.profiles
+                selected: Backend.profile_index
+                onSelect: (index) => Backend.profile_index = index
             }
 
             Button {
@@ -124,8 +125,8 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 text: "Rename Profile"
                 onClicked: {
-                    var idx = backend.profiles.index(backend.profile_index, 0);
-                    rename_name.text = backend.profiles.data(idx);
+                    var idx = Backend.profiles.index(Backend.profile_index, 0);
+                    rename_name.text = Backend.profiles.data(idx);
                     rename_dialog.open()
                 }
             }
@@ -154,8 +155,8 @@ ApplicationWindow {
                         title: "Select Lossless.dll"
                         filter: "Dynamic Link Library Files (*.dll)"
 
-                        text: backend.dll
-                        onUpdate: (text) => backend.dll = text
+                        text: Backend.dll
+                        onUpdate: (text) => Backend.dll = text
                     }
                 }
 
@@ -166,15 +167,15 @@ ApplicationWindow {
                     CheckBox {
                         Layout.alignment: Qt.AlignRight
 
-                        checked: backend.allow_fp16
-                        onToggled: backend.allow_fp16 = checked
+                        checked: Backend.allow_fp16
+                        onToggled: Backend.allow_fp16 = checked
                     }
                 }
             }
 
             Group {
                 name: "Profile Settings"
-                enabled: backend.available
+                enabled: Backend.available
 
                 GroupEntry {
                     title: "Active In"
@@ -198,8 +199,8 @@ ApplicationWindow {
                         from: 2
                         to: 100
 
-                        value: backend.multiplier
-                        onValueModified: backend.multiplier = value
+                        value: Backend.multiplier
+                        onValueModified: Backend.multiplier = value
                     }
                 }
 
@@ -213,8 +214,8 @@ ApplicationWindow {
                         from: 0.25
                         to: 1.00
 
-                        value: backend.flow_scale
-                        onUpdate: (value) => backend.flow_scale = value
+                        value: Backend.flow_scale
+                        onUpdate: (value) => Backend.flow_scale = value
                     }
                 }
 
@@ -225,8 +226,8 @@ ApplicationWindow {
                     CheckBox {
                         Layout.alignment: Qt.AlignRight
 
-                        checked: backend.performance_mode
-                        onToggled: backend.performance_mode = checked
+                        checked: Backend.performance_mode
+                        onToggled: Backend.performance_mode = checked
                     }
                 }
 
@@ -238,8 +239,8 @@ ApplicationWindow {
                         Layout.fillWidth: true
 
                         model: ["None"]
-                        currentIndex: backend.pacing_mode
-                        onActivated: (index) => backend.pacing_mode = index
+                        currentIndex: Backend.pacing_mode
+                        onActivated: (index) => Backend.pacing_mode = index
                     }
                 }
 
@@ -250,9 +251,9 @@ ApplicationWindow {
                     ComboBox {
                         Layout.fillWidth: true
 
-                        model: backend.gpus
-                        currentIndex: backend.gpu
-                        onActivated: (index) => backend.gpu = index
+                        model: Backend.gpus
+                        currentIndex: Backend.gpu
+                        onActivated: (index) => Backend.gpu = index
                     }
                 }
             }

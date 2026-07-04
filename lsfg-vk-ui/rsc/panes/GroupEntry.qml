@@ -26,9 +26,9 @@ RowLayout {
             Label {
                 text: root.description
                 color: Qt.rgba(
-                    palette.text.r,
-                    palette.text.g,
-                    palette.text.b,
+                    palette.windowText.r,
+                    palette.windowText.g,
+                    palette.windowText.b,
                     0.7
                 )
             }

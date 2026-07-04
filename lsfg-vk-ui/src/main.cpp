@@ -3,7 +3,7 @@
 #include <QIcon>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQmlContext>
+#include <QQmlEngine>
 #include <QUrl>
 
 #include "backend.hpp"
@@ -16,11 +16,11 @@ int main(int argc, char* argv[]) {
     QGuiApplication::setApplicationName("lsfg-vk-ui");
     QGuiApplication::setApplicationDisplayName("lsfg-vk-ui");
 
-    QQmlApplicationEngine engine;
     Backend backend;
+    qmlRegisterSingletonInstance("lsfgvk", 1, 0, "Backend", &backend);
 
-    engine.rootContext()->setContextProperty("backend", &backend);
-    engine.load("qrc:/rsc/UI.qml");
+    QQmlApplicationEngine engine;
+    engine.load(QUrl("qrc:/rsc/UI.qml"));
 
     return QGuiApplication::exec();
 }

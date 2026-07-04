@@ -111,7 +111,11 @@ jobs:
           export QML_IMPORT_PATH="$HERE/usr/qml:${QML_IMPORT_PATH}"
           export QT_PLUGIN_PATH="$HERE/usr/plugins:${QT_PLUGIN_PATH}"
           export QT_QUICK_CONTROLS_STYLE="${QT_QUICK_CONTROLS_STYLE:-Fusion}"
-          export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-xdgdesktopportal}"
+          # gtk3 platform theme reads user's GTK settings (palette, icon theme, fonts)
+          # which on modern DEs (KDE Plasma incl. Bazzite, GNOME, XFCE, Cinnamon)
+          # mirror the DE's active theme. Qt 6.4 xdgdesktopportal theme doesn't
+          # relay palette info yet, so gtk3 gives better system-theme inheritance.
+          export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-gtk3}"
           export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
           case "$1" in
