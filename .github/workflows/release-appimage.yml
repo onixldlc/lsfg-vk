@@ -116,23 +116,6 @@ jobs:
           export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-xdgdesktopportal}"
           export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
-          # Detect user's color-scheme preference (portable across KDE/GNOME/etc.
-          # via the freedesktop standard gsettings key) and pick a Qt Quick Controls
-          # style that renders that preference cleanly. Only fires if user hasn't
-          # already exported their own STYLE/MATERIAL_THEME.
-          if [ -z "$QT_QUICK_CONTROLS_STYLE" ] && command -v gsettings >/dev/null 2>&1; then
-              case "$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null)" in
-                  *prefer-dark*)
-                      export QT_QUICK_CONTROLS_STYLE=Material
-                      export QT_QUICK_CONTROLS_MATERIAL_THEME="${QT_QUICK_CONTROLS_MATERIAL_THEME:-Dark}"
-                      ;;
-                  *prefer-light*)
-                      export QT_QUICK_CONTROLS_STYLE=Material
-                      export QT_QUICK_CONTROLS_MATERIAL_THEME="${QT_QUICK_CONTROLS_MATERIAL_THEME:-Light}"
-                      ;;
-              esac
-          fi
-
           case "$1" in
             cli)
               shift
