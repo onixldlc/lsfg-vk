@@ -12,26 +12,29 @@
 
 using namespace lsfgvk::ui;
 
-// Qt's platform-theme relay can hand back a palette where Window is dark
-// (from portal) but Button is light (from a different code path e.g. GTK
-// Adwaita), which makes controls render as if disabled or light-on-dark.
-// Only intervene if Window and Button sit on opposite ends of the lightness
-// spectrum — that indicates the palette was assembled from mismatched
-// sources. If the theme is internally consistent, respect it fully.
+// Qt platform themes (especially xdgdesktopportal on Qt 6.4) can deliver
+// palettes where Button/ButtonText/Base/Text roles are either missing or
+// low-contrast against Window/WindowText. Fusion draws every control from
+// those roles, so a bad Button/ButtonText combo renders as unreadable.
+// Derive the control-surface roles from Window and force text to match
+// WindowText — the user's chosen window+text pair stays the source of
+// truth; we only fill in gaps and enforce contrast.
 static void normalizePalette() {
     QPalette p = QGuiApplication::palette();
     const QColor window = p.color(QPalette::Window);
-    const QColor button = p.color(QPalette::Button);
-    const bool windowDark = window.lightness() < 128;
-    const bool buttonDark = button.lightness() < 128;
-    if (windowDark == buttonDark) return;
-
     const QColor windowText = p.color(QPalette::WindowText);
-    p.setColor(QPalette::Button, windowDark ? window.lighter(115) : window.darker(105));
+    const bool isDark = window.lightness() < 128;
+    p.setColor(QPalette::Button, isDark ? window.lighter(125) : window.darker(108));
     p.setColor(QPalette::ButtonText, windowText);
-    p.setColor(QPalette::Base, windowDark ? window.darker(115) : window.lighter(105));
+    p.setColor(QPalette::Base, isDark ? window.darker(115) : window.lighter(105));
     p.setColor(QPalette::Text, windowText);
-    p.setColor(QPalette::AlternateBase, windowDark ? window.lighter(105) : window.darker(103));
+    p.setColor(QPalette::AlternateBase, isDark ? window.lighter(108) : window.darker(103));
+    // Disabled variants — half-alpha windowText so disabled state still reads.
+    QColor disabledText = windowText;
+    disabledText.setAlpha(128);
+    p.setColor(QPalette::Disabled, QPalette::ButtonText, disabledText);
+    p.setColor(QPalette::Disabled, QPalette::Text, disabledText);
+    p.setColor(QPalette::Disabled, QPalette::WindowText, disabledText);
     QGuiApplication::setPalette(p);
 }
 
