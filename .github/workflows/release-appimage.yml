@@ -110,19 +110,28 @@ jobs:
           export VK_ADD_LAYER_PATH="$HERE/usr/share/vulkan/implicit_layer.d:${VK_ADD_LAYER_PATH}"
           export QML_IMPORT_PATH="$HERE/usr/qml:${QML_IMPORT_PATH}"
           export QT_PLUGIN_PATH="$HERE/usr/plugins:${QT_PLUGIN_PATH}"
-          # Material style inherits ambient palette from parent controls so it
-          # tracks the platform theme's dark/light. Fusion in Qt 6.4 renders
-          # low-contrast button faces on some dark palettes (buttons visually
-          # indistinguishable from disabled). Do NOT force MATERIAL_THEME —
-          # Qt 6.4 System detection is unreliable and forcing Light/Dark breaks
-          # inheritance; letting Material pick from parent palette works.
-          export QT_QUICK_CONTROLS_STYLE="${QT_QUICK_CONTROLS_STYLE:-Material}"
-          # xdgdesktopportal platform theme routes dialogs to user's DE picker
-          # via xdg-desktop-portal and (on Qt 6.4 with proper portal impl) relays
-          # dark/light preference so Material picks the right theme automatically.
-          # gtk3 theme was tried but broke Material auto-detection on KDE Bazzite.
+          # xdgdesktopportal platform theme routes FileDialog to user's DE picker
+          # via xdg-desktop-portal (KDE → Dolphin, GNOME → Files, etc.).
+          # Users can override by pre-setting QT_QPA_PLATFORMTHEME/QT_QUICK_CONTROLS_STYLE.
           export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-xdgdesktopportal}"
           export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+          # Detect user's color-scheme preference (portable across KDE/GNOME/etc.
+          # via the freedesktop standard gsettings key) and pick a Qt Quick Controls
+          # style that renders that preference cleanly. Only fires if user hasn't
+          # already exported their own STYLE/MATERIAL_THEME.
+          if [ -z "$QT_QUICK_CONTROLS_STYLE" ] && command -v gsettings >/dev/null 2>&1; then
+              case "$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null)" in
+                  *prefer-dark*)
+                      export QT_QUICK_CONTROLS_STYLE=Material
+                      export QT_QUICK_CONTROLS_MATERIAL_THEME="${QT_QUICK_CONTROLS_MATERIAL_THEME:-Dark}"
+                      ;;
+                  *prefer-light*)
+                      export QT_QUICK_CONTROLS_STYLE=Material
+                      export QT_QUICK_CONTROLS_MATERIAL_THEME="${QT_QUICK_CONTROLS_MATERIAL_THEME:-Light}"
+                      ;;
+              esac
+          fi
 
           case "$1" in
             cli)
