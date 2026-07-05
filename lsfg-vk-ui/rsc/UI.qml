@@ -15,6 +15,17 @@ ApplicationWindow {
     minimumHeight: 400
     visible: true
 
+    // Qt Quick Controls Fusion in Qt 6.4 doesn't reuse palette.windowText for
+    // Button/Text roles when the platform theme leaves them unset — it falls
+    // back to its own defaults, which look wrong on our platform-theme window
+    // colour. Alias the roles that Labels use correctly (windowText, window)
+    // into the Button/Text/Base roles so all controls share the same source.
+    palette.buttonText: palette.windowText
+    palette.text: palette.windowText
+    palette.button: palette.window
+    palette.base: palette.window
+    palette.alternateBase: palette.window
+
     CenteredDialog {
         id: create_dialog
         name: "Create New Profile"
